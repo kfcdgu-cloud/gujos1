@@ -1,0 +1,156 @@
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- 1. ปลดล็อก 120 FPS
+if setfpscap then
+    setfpscap(120)
+end
+
+-- 2. ฟังก์ชันปรับดินน้ำมันขั้นสุด (ทำงานทันที)
+local function applyClayMode()
+    -- ปรับเรนเดอร์เกมต่ำสุด
+    pcall(function()
+        settings().Rendering.QualityLevel = 1
+    end)
+    
+    -- ปรับ Lighting ลดเงา/เอฟเฟกต์บรรยากาศ
+    local lighting = game:GetService("Lighting")
+    lighting.GlobalShadows = false
+    lighting.FogEnd = 9e9
+    lighting.Brightness = 1
+    
+    -- ปรับพื้นผิวแมพ (Terrain) ให้เนียนแบบดินน้ำมัน
+    if workspace:FindFirstChildOfClass("Terrain") then
+        local terrain = workspace:FindFirstChildOfClass("Terrain")
+        terrain.WaterWaveSize = 0
+        terrain.WaterWaveSpeed = 0
+        terrain.WaterReflectance = 0
+        terrain.WaterTransparency = 0
+    end
+    
+    -- ปรับ Part ทั้งหมดในเกมให้เป็น SmoothPlastic และปิดเงา
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.Material = Enum.Material.SmoothPlastic
+            v.Reflectance = 0
+            v.CastShadow = false
+        elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Sparkles") then
+            v.Enabled = false
+        end
+    end
+end
+
+-- สั่งทำงานดินน้ำมันทันทีเมื่อรันสคริปต์
+applyClayMode()
+
+-- 3. สร้าง GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CustomIYGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- ปุ่มกลม IY (ลากได้)
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "IYToggleBtn"
+toggleBtn.Size = UDim2.new(0, 50, 0, 50)
+toggleBtn.Position = UDim2.new(0.45, 0, 0.1, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(20, 30, 50)
+toggleBtn.Text = "IY"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.TextSize = 22
+toggleBtn.Font = Enum.Font.SourceSansBold
+toggleBtn.Active = true
+toggleBtn.Draggable = true
+toggleBtn.Parent = screenGui
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(1, 0)
+btnCorner.Parent = toggleBtn
+
+-- หน้าต่างหลัก (ลากได้)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 320, 0, 380)
+mainFrame.Position = UDim2.new(0.5, -160, 0.2, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+mainFrame.BackgroundTransparency = 0.15
+mainFrame.Visible = false
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 16)
+frameCorner.Parent = mainFrame
+
+local framePadding = Instance.new("UIPadding")
+framePadding.PaddingTop = UDim.new(0, 15)
+framePadding.PaddingLeft = UDim.new(0, 15)
+framePadding.PaddingRight = UDim.new(0, 15)
+framePadding.Parent = mainFrame
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 10)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.Parent = mainFrame
+
+-- เครดิตผู้เขียน
+local authorLabel = Instance.new("TextLabel")
+authorLabel.Name = "AuthorLabel"
+authorLabel.Size = UDim2.new(1, 0, 0, 25)
+authorLabel.BackgroundTransparency = 1
+authorLabel.Text = "ผู้เขียน: ลูกแม่จร"
+authorLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+authorLabel.TextSize = 16
+authorLabel.Font = Enum.Font.SourceSansBold
+authorLabel.Parent = mainFrame
+
+-- รูปโปรไฟล์ผู้เขียน
+local profileImage = Instance.new("ImageLabel")
+profileImage.Name = "ProfileImage"
+profileImage.Size = UDim2.new(0, 70, 0, 70)
+profileImage.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+profileImage.Image = game:GetService("Players"):GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+profileImage.Parent = mainFrame
+
+local imgCorner = Instance.new("UICorner")
+imgCorner.CornerRadius = UDim.new(1, 0)
+imgCorner.Parent = profileImage
+
+-- ฟังก์ชันสร้างปุ่ม
+local function createMenuButton(text, iconText, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    btn.BackgroundTransparency = 0.3
+    btn.Text = "  " .. iconText .. "  " .. text
+    btn.TextColor3 = Color3.fromRGB(240, 240, 240)
+    btn.TextSize = 15
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.Parent = mainFrame
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = btn
+    
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+-- ปุ่ม Spawn Galaxy Block
+createMenuButton("Spawn Galaxy Block", "⚡", function()
+    print("Spawn Galaxy Block สั่งทำงาน!")
+end)
+
+-- ปุ่ม รีเฟรชดินน้ำมัน + 120 FPS
+createMenuButton("เปิดโหมดดินน้ำมัน + 120 FPS", "🎨", function()
+    applyClayMode()
+    if setfpscap then setfpscap(120) end
+end)
+
+-- เปิด/ปิด เมนู
+toggleBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+end)
