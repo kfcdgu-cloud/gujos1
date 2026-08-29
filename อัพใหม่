@@ -1,0 +1,271 @@
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local camera = workspace.CurrentCamera
+local runService = game:GetService("RunService")
+local players = game:GetService("Players")
+
+-- ========================================================
+-- ระบบ Aimbot / FOV / ESP Setup
+-- ========================================================
+local aimbotEnabled = false
+local espEnabled = false
+local fovRadius = 100
+local maxFOV = 360
+
+-- รายการสีวงกลม FOV
+local fovColors = {
+    {name = "สีทอง", color = Color3.fromRGB(255, 215, 0)},
+    {name = "สีแดง", color = Color3.fromRGB(255, 50, 50)},
+    {name = "สีเขียว", color = Color3.fromRGB(50, 255, 50)},
+    {name = "สีฟ้า", color = Color3.fromRGB(50, 150, 255)},
+    {name = "สีชมพู", color = Color3.fromRGB(255, 105, 180)},
+    {name = "สีส้ม", color = Color3.fromRGB(255, 140, 0)}
+}
+local currentColorIndex = 1
+
+-- วงกลม FOV แสดงบนหน้าจอ
+local fovCircle = Drawing.new("Circle")
+fovCircle.Visible = false
+fovCircle.Thickness = 1.5
+fovCircle.Color = fovColors[currentColorIndex].color
+fovCircle.Filled = false
+fovCircle.Transparency = 1
+fovCircle.Radius = fovRadius
+
+-- ฟังก์ชันหาผู้เล่นที่ใกล้เป้าที่สุดในระยะ FOV
+local function getClosestPlayer()
+    local target = nil
+    local shortestDistance = fovRadius
+
+    for _, p in ipairs(players:GetPlayers()) do
+        if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
+            local pos, onScreen = camera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+            if onScreen then
+                local mousePos = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+                local distance = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                if distance < shortestDistance then
+                    target = p.Character.HumanoidRootPart
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+    return target
+end
+
+-- ลูปการทำงาน Aimbot & FOV
+runService.RenderStepped:Connect(function()
+    local center = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+    fovCircle.Position = center
+    fovCircle.Radius = fovRadius
+    fovCircle.Color = fovColors[currentColorIndex].color
+    fovCircle.Visible = aimbotEnabled
+
+    if aimbotEnabled then
+        local target = getClosestPlayer()
+        if target then
+            camera.CFrame = CFrame.new(camera.CFrame.Position, target.Position)
+        end
+    end
+end)
+
+-- ฟังก์ชันจัดการ ESP มองทะลุคน
+local function updateESP()
+    for _, p in ipairs(players:GetPlayers()) do
+        if p ~= player and p.Character then
+            local highlight = p.Character:FindFirstChild("ESPHighlight")
+            if espEnabled then
+                if not highlight then
+                    highlight = Instance.new("Highlight")
+                    highlight.Name = "ESPHighlight"
+                    highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    highlight.FillTransparency = 0.5
+                    highlight.OutlineTransparency = 0
+                    highlight.Adornee = p.Character
+                    highlight.Parent = p.Character
+                end
+            else
+                if highlight then
+                    highlight:Destroy()
+                end
+            end
+        end
+    end
+end
+
+-- อัปเดต ESP อัตโนมัติเมื่อมีคนเกิดใหม่หรือเข้ามาในเกม
+players.PlayerAdded:Connect(function(p)
+    p.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        updateESP()
+    end)
+end)
+
+-- ========================================================
+-- 1. สร้าง ScreenGui
+-- ========================================================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CustomIYGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- 2. ปุ่มกลม IY (ลากเลื่อนได้)
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "IYToggleBtn"
+toggleBtn.Size = UDim2.new(0, 50, 0, 50)
+toggleBtn.Position = UDim2.new(0.45, 0, 0.1, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(20, 30, 50)
+toggleBtn.Text = "IY"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.TextSize = 22
+toggleBtn.Font = Enum.Font.SourceSansBold
+toggleBtn.Active = true
+toggleBtn.Draggable = true
+toggleBtn.Parent = screenGui
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(1, 0)
+btnCorner.Parent = toggleBtn
+
+-- 3. หน้าต่างหลัก (ลากเลื่อนได้)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 320, 0, 510)
+mainFrame.Position = UDim2.new(0.5, -160, 0.1, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+mainFrame.BackgroundTransparency = 0.15
+mainFrame.Visible = false
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 16)
+frameCorner.Parent = mainFrame
+
+local framePadding = Instance.new("UIPadding")
+framePadding.PaddingTop = UDim.new(0, 15)
+framePadding.PaddingLeft = UDim.new(0, 15)
+framePadding.PaddingRight = UDim.new(0, 15)
+framePadding.Parent = mainFrame
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 10)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.Parent = mainFrame
+
+-- 👑 เครดิตผู้เขียน
+local authorLabel = Instance.new("TextLabel")
+authorLabel.Name = "AuthorLabel"
+authorLabel.Size = UDim2.new(1, 0, 0, 25)
+authorLabel.BackgroundTransparency = 1
+authorLabel.Text = "ผู้เขียน: ลูกแม่จร"
+authorLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+authorLabel.TextSize = 16
+authorLabel.Font = Enum.Font.SourceSansBold
+authorLabel.Parent = mainFrame
+
+-- 🖼️ รูปโปรไฟล์ผู้เขียน
+local profileImage = Instance.new("ImageLabel")
+profileImage.Name = "ProfileImage"
+profileImage.Size = UDim2.new(0, 70, 0, 70)
+profileImage.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+profileImage.Image = game:GetService("Players"):GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+profileImage.Parent = mainFrame
+
+local imgCorner = Instance.new("UICorner")
+imgCorner.CornerRadius = UDim.new(1, 0)
+imgCorner.Parent = profileImage
+
+-- ฟังก์ชันสร้างปุ่ม
+local function createMenuButton(text, iconText, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    btn.BackgroundTransparency = 0.3
+    btn.Text = "  " .. iconText .. "  " .. text
+    btn.TextColor3 = Color3.fromRGB(240, 240, 240)
+    btn.TextSize = 15
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.Parent = mainFrame
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = btn
+    
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+-- ========================================================
+-- 4. ปุ่มสั่งการ
+-- ========================================================
+
+-- ปุ่ม 1: Spawn Galaxy Block
+createMenuButton("Spawn Galaxy Block", "⚡", function()
+    print("Spawn Galaxy Block สั่งทำงาน!")
+end)
+
+-- ปุ่ม 2: โหมดดินน้ำมันขั้นสุด
+local isClayMode = false
+local clayBtn
+clayBtn = createMenuButton("โหมดดินน้ำมันแบบลื่นกริ๊บ: OFF", "🎨", function()
+    isClayMode = not isClayMode
+    clayBtn.Text = isClayMode and "  🎨  โหมดดินน้ำมันแบบลื่นกริ๊บ: ON" or "  🎨  โหมดดินน้ำมันแบบลื่นกริ๊บ: OFF"
+    
+    settings().Rendering.QualityLevel = isClayMode and 1 or 5
+    
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.Material = isClayMode and Enum.Material.SmoothPlastic or Enum.Material.Plastic
+            v.CastShadow = not isClayMode
+        elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Sparkles") or v:IsA("Smoke") or v:IsA("Fire") then
+            v:Destroy()
+        end
+    end
+end)
+
+-- ปุ่ม 3: ระบบมองทะลุคน (ESP)
+local espBtn
+espBtn = createMenuButton("ระบบมองคน (ESP): OFF", "👁️", function()
+    espEnabled = not espEnabled
+    espBtn.Text = espEnabled and "  👁️  ระบบมองคน (ESP): ON" or "  👁️  ระบบมองคน (ESP): OFF"
+    updateESP()
+end)
+
+-- ปุ่ม 4: เปิด/ปิด ล็อกเป้าผู้เล่น (Aimbot)
+local aimBtn
+aimBtn = createMenuButton("ระบบล็อกเป้าคน: OFF", "🎯", function()
+    aimbotEnabled = not aimbotEnabled
+    aimBtn.Text = aimbotEnabled and "  🎯  ระบบล็อกเป้าคน: ON" or "  🎯  ระบบล็อกเป้าคน: OFF"
+end)
+
+-- ปุ่ม 5: ปรับระยะ FOV (สูงสุด 360)
+local fovBtn
+fovBtn = createMenuButton("ปรับระยะ FOV: " .. tostring(fovRadius) .. "°", "📐", function()
+    fovRadius = fovRadius + 60
+    if fovRadius > maxFOV then
+        fovRadius = 60
+    end
+    fovBtn.Text = "  📐  ปรับระยะ FOV: " .. tostring(fovRadius) .. "°"
+end)
+
+-- ปุ่ม 6: เปลี่ยนสีวงกลม FOV
+local colorBtn
+colorBtn = createMenuButton("สีวงกลม FOV: " .. fovColors[currentColorIndex].name, "🎨", function()
+    currentColorIndex = currentColorIndex + 1
+    if currentColorIndex > #fovColors then
+        currentColorIndex = 1
+    end
+    colorBtn.Text = "  🎨  สีวงกลม FOV: " .. fovColors[currentColorIndex].name
+end)
+
+-- ========================================================
+-- 5. ระบบเปิด-ปิด เมนูด้วยปุ่ม IY
+-- ========================================================
+toggleBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+end)
