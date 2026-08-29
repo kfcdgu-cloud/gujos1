@@ -1,0 +1,133 @@
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- 1. สร้าง ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CustomIYGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- 2. ปุ่มกลม IY (ลากเลื่อนได้)
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "IYToggleBtn"
+toggleBtn.Size = UDim2.new(0, 50, 0, 50)
+toggleBtn.Position = UDim2.new(0.45, 0, 0.1, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(20, 30, 50)
+toggleBtn.Text = "IY"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.TextSize = 22
+toggleBtn.Font = Enum.Font.SourceSansBold
+toggleBtn.Active = true
+toggleBtn.Draggable = true
+toggleBtn.Parent = screenGui
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(1, 0)
+btnCorner.Parent = toggleBtn
+
+-- 3. หน้าต่างหลัก (ลากเลื่อนได้)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 320, 0, 350)
+mainFrame.Position = UDim2.new(0.5, -160, 0.2, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+mainFrame.BackgroundTransparency = 0.15
+mainFrame.Visible = false
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 16)
+frameCorner.Parent = mainFrame
+
+local framePadding = Instance.new("UIPadding")
+framePadding.PaddingTop = UDim.new(0, 15)
+framePadding.PaddingLeft = UDim.new(0, 15)
+framePadding.PaddingRight = UDim.new(0, 15)
+framePadding.Parent = mainFrame
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 10)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.Parent = mainFrame
+
+-- 👑 เครดิตผู้เขียน
+local authorLabel = Instance.new("TextLabel")
+authorLabel.Name = "AuthorLabel"
+authorLabel.Size = UDim2.new(1, 0, 0, 25)
+authorLabel.BackgroundTransparency = 1
+authorLabel.Text = "ผู้เขียน: ลูกแม่จร"
+authorLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+authorLabel.TextSize = 16
+authorLabel.Font = Enum.Font.SourceSansBold
+authorLabel.Parent = mainFrame
+
+-- 🖼️ รูปโปรไฟล์ผู้เขียน
+local profileImage = Instance.new("ImageLabel")
+profileImage.Name = "ProfileImage"
+profileImage.Size = UDim2.new(0, 70, 0, 70)
+profileImage.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+profileImage.Image = game:GetService("Players"):GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+profileImage.Parent = mainFrame
+
+local imgCorner = Instance.new("UICorner")
+imgCorner.CornerRadius = UDim.new(1, 0)
+imgCorner.Parent = profileImage
+
+-- ฟังก์ชันสร้างปุ่ม
+local function createMenuButton(text, iconText, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    btn.BackgroundTransparency = 0.3
+    btn.Text = "  " .. iconText .. "  " .. text
+    btn.TextColor3 = Color3.fromRGB(240, 240, 240)
+    btn.TextSize = 15
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.Parent = mainFrame
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = btn
+    
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+-- ========================================================
+-- 4. ปุ่มสั่งการ
+-- ========================================================
+
+-- ปุ่ม 1: Spawn Galaxy Block
+createMenuButton("Spawn Galaxy Block", "⚡", function()
+    print("Spawn Galaxy Block สั่งทำงาน!")
+end)
+
+-- ปุ่ม 2: โหมดดินน้ำมันขั้นสุด (SmoothPlastic + Quality Level 1)
+local isClayMode = false
+local clayBtn
+clayBtn = createMenuButton("โหมดดินน้ำมันแบบลื่นกริ๊บ: OFF", "🎨", function()
+    isClayMode = not isClayMode
+    clayBtn.Text = isClayMode and "  🎨  โหมดดินน้ำมันแบบลื่นกริ๊บ: ON" or "  🎨  โหมดดินน้ำมันแบบลื่นกริ๊บ: OFF"
+    
+    settings().Rendering.QualityLevel = isClayMode and 1 or 5
+    
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.Material = isClayMode and Enum.Material.SmoothPlastic or Enum.Material.Plastic
+            v.CastShadow = not isClayMode
+        elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Sparkles") or v:IsA("Smoke") or v:IsA("Fire") then
+            v:Destroy()
+        end
+    end
+end)
+
+-- ========================================================
+-- 5. ระบบเปิด-ปิด เมนูด้วยปุ่ม IY
+-- ========================================================
+toggleBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+end)
