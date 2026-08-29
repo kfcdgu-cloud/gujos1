@@ -1,0 +1,71 @@
+-- สร้าง ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- ปุ่มเปิด/ปิด เมนู
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 120, 0, 40)
+toggleBtn.Position = UDim2.new(0, 20, 0, 20)
+toggleBtn.Text = "☰ เปิด/ปิด เมนู"
+toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.Parent = screenGui
+
+-- ปุ่มโหมดกาก (แก้แลค)
+local lowGraphicBtn = Instance.new("TextButton")
+lowGraphicBtn.Size = UDim2.new(0, 140, 0, 40)
+lowGraphicBtn.Position = UDim2.new(0, 150, 0, 20)
+lowGraphicBtn.Text = "โหมดกาก (แก้แลค)"
+lowGraphicBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+lowGraphicBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+lowGraphicBtn.Parent = screenGui
+
+-- ตัวกรอบเมนู (Sidebar Frame)
+local menuFrame = Instance.new("Frame")
+menuFrame.Size = UDim2.new(0, 200, 0, 300)
+menuFrame.Position = UDim2.new(0, 20, 0, 70)
+menuFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+menuFrame.Visible = false -- เริ่มต้นซ่อนไว้
+menuFrame.Parent = screenGui
+
+-- ใส่หัวข้อรายการในเมนู (UIListLayout)
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 5)
+layout.Parent = menuFrame
+
+-- รายชื่อแต่ละหัวข้อ
+local items = {"1. หน้าแรก", "2. เกี่ยวกับเรา", "3. บริการของเรา", "4. ติดต่อเรา"}
+
+for idx, itemName in ipairs(items) do
+    local itemBtn = Instance.new("TextButton")
+    itemBtn.Size = UDim2.new(1, 0, 0, 40)
+    itemBtn.Text = itemName
+    itemBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    itemBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    itemBtn.Parent = menuFrame
+    
+    itemBtn.MouseButton1Click:Connect(function()
+        print("กดเลือกหัวข้อ: " .. itemName)
+    end)
+end
+
+-- สคริปต์ควบคุมการเปิด/ปิด เมนู
+toggleBtn.MouseButton1Click:Connect(function()
+    menuFrame.Visible = not menuFrame.Visible
+end)
+
+-- สคริปต์ควบคุมโหมดกาก (ลดกราฟิกแก้แลค)
+local isLow = false
+lowGraphicBtn.MouseButton1Click:Connect(function()
+    isLow = not isLow
+    if isLow then
+        lowGraphicBtn.Text = "โหมดกาก: เปิดอยู่"
+        lowGraphicBtn.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
+        -- ลดคุณภาพแสง/กราฟิกเพื่อลดอาการแลค
+        settings().Rendering.QualityLevel = 1
+    else
+        lowGraphicBtn.Text = "โหมดกาก (แก้แลค)"
+        lowGraphicBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+        settings().Rendering.QualityLevel = 5
+    end
+end)
